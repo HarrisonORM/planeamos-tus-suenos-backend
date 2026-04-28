@@ -1,0 +1,22 @@
+# Entorno virtual
+entorno/
+venv/
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Variables de entorno
+.env
+
+# Base de datos local
+db.sqlite3
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
