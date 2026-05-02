@@ -10,7 +10,7 @@ ALLOWED_HOSTS = config(
     "ALLOWED_HOSTS",
     default="localhost,127.0.0.1",
     cast=Csv()
-)
+) + [".onrender.com"]
 
 # Apps instaladas
 INSTALLED_APPS = [
