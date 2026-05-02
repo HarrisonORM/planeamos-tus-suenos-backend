@@ -87,6 +87,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "planeamos-tus-suenos-frontend.vercel.app",
 ]
 
 # Configuración de la API
@@ -95,3 +96,10 @@ REST_FRAMEWORK = {
         "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
 }
+# Producción
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
+    "https://*.vercel.app",
+]
