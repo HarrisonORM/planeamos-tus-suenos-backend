@@ -14,6 +14,25 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Cargando datos...")
 
+        # Crear superusuario si no existe
+        from django.contrib.auth.models import User
+        from decouple import config
+        admin_pass = config(
+            "ADMIN_PASSWORD",
+            default="temporal123"
+        )
+        if not User.objects.filter(
+            username="administracion"
+        ).exists():
+            User.objects.create_superuser(
+                username="administracion",
+                email="harryson02@outlook.com",
+                password=admin_pass
+            )
+            self.stdout.write(
+                "  Superusuario 'administracion' creado"
+            )
+
         # Limpiar datos existentes
         ProductoAlquiler.objects.all().delete()
         ServicioPersonal.objects.all().delete()
