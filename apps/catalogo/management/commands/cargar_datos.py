@@ -18,8 +18,8 @@ class Command(BaseCommand):
         from django.contrib.auth.models import User
         from decouple import config
         admin_pass = config(
-            "ADMIN_PASSWORD",
-            default="temporal123"
+            "ADMINISTRACION_PASSWORD",
+            default="admin123"
         )
         if not User.objects.filter(
             username="administracion"
