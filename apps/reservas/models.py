@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 
 
@@ -27,6 +28,14 @@ class Reserva(models.Model):
     descripcion = models.TextField(blank=True)
     valor_total = models.IntegerField(default=0)
     valor_anticipo = models.IntegerField(default=0)
+    anticipo_validado = models.BooleanField(default=False)
+    token_pago = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        null=True,
+        blank=True,
+    )
     estado = models.CharField(
         max_length=50,
         choices=ESTADOS,
@@ -46,5 +55,48 @@ class Reserva(models.Model):
     def __str__(self):
         return (
             f"{self.nombre_cliente} — "
+            + f"{self.get_estado_display()}"
+        )
+
+
+class PagoReserva(models.Model):
+    ESTADOS = [
+        ("pendiente", "Pendiente"),
+        ("aprobado", "Aprobado"),
+        ("rechazado", "Rechazado"),
+        ("anulado", "Anulado"),
+        ("error", "Error"),
+    ]
+
+    reserva = models.ForeignKey(
+        Reserva,
+        on_delete=models.PROTECT,
+        related_name="pagos",
+    )
+    referencia = models.CharField(
+        max_length=255,
+        unique=True,
+    )
+    valor_anticipo = models.PositiveIntegerField()
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS,
+        default="pendiente",
+    )
+    transaccion_id = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Pago de Reserva"
+        verbose_name_plural = "Pagos de Reservas"
+        ordering = ["-creado"]
+
+    def __str__(self):
+        return (
+            f"{self.referencia} — "
             + f"{self.get_estado_display()}"
         )

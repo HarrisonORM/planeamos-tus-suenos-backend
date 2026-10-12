@@ -87,11 +87,28 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS — permite que el frontend hable con el backend
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://planeamos-tus-suenos-frontend.vercel.app",
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default=(
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "https://planeamos-tus-suenos-frontend.vercel.app"
+    ),
+    cast=Csv(),
+)
+
+WOMPI_PUBLIC_KEY = config(
+    "WOMPI_PUBLIC_KEY",
+    default="",
+)
+WOMPI_INTEGRITY_SECRET = config(
+    "WOMPI_INTEGRITY_SECRET",
+    default="",
+)
+WOMPI_EVENTS_SECRET = config(
+    "WOMPI_EVENTS_SECRET",
+    default="",
+)
 
 # Configuración de la API
 REST_FRAMEWORK = {

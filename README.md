@@ -15,10 +15,69 @@ API REST para el sitio web de organización de eventos en el Oriente Antioqueño
 |---|---|
 | `/api/catalogo/productos/` | Productos de alquiler |
 | `/api/catalogo/servicios/` | Servicios de personal |
+| `/api/catalogo/paquetes/` | Paquetes de eventos |
+| `/api/catalogo/locaciones/` | Locaciones |
 | `/api/portafolio/eventos/` | Eventos del portafolio |
 | `/api/contacto/mensajes/` | Mensajes de contacto |
 | `/api/contacto/cotizaciones/` | Cotizaciones de eventos |
-| `/api/reservas/reservas/` | Reservas con anticipo |
+| `/api/reservas/reservas/` | Solicitudes de reserva |
+| `/api/reservas/reservas/fechas-ocupadas/` | Fechas |
+
+### Filtros y acceso
+
+- Productos y servicios aceptan `?categoria=`.
+- Eventos aceptan `?tipo_evento=`.
+- Locaciones aceptan `?municipio=`.
+- Las fechas ocupadas excluyen reservas pendientes
+  y canceladas.
+- Crear una reserva es público; consultar y administrar
+  reservas requiere una cuenta de administrador.
+
+## Pagos con Wompi Sandbox
+
+El flujo actual está limitado a Sandbox. No permite
+procesar pagos reales.
+
+1. El cliente crea una reserva con
+   `POST /api/reservas/reservas/`.
+2. La respuesta de creación incluye `token_pago`.
+3. Un administrador revisa el valor del anticipo y activa
+   `anticipo_validado` en el panel `/admin/`.
+4. El cliente inicia el checkout:
+
+```http
+POST /api/reservas/reservas/pago-anticipo/
+Content-Type: application/json
+```
+
+```json
+{
+  "token_pago": "UUID-recibido-al-crear-la-reserva"
+}
+```
+
+La respuesta incluye `checkout_url` y `referencia`.
+El cliente debe abrir `checkout_url` para pagar.
+No compartas el token de pago con terceros.
+
+Wompi envía el resultado a:
+
+```text
+POST /api/reservas/reservas/wompi-webhook/
+```
+
+Configura esta URL en Wompi para el evento
+`transaction.updated`. El backend verifica el checksum
+con el secreto de eventos antes de actualizar el pago.
+
+Define estas variables en el entorno local o en Render:
+
+- `WOMPI_PUBLIC_KEY`: llave pública `pub_test_`.
+- `WOMPI_INTEGRITY_SECRET`: secreto de integridad.
+- `WOMPI_EVENTS_SECRET`: secreto para firmar eventos.
+
+Obtén las llaves de Sandbox desde el panel de Wompi.
+No publiques sus valores en el repositorio.
 
 ## Instalación
 

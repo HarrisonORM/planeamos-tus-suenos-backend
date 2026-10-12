@@ -1,4 +1,4 @@
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from apps.catalogo.models import (
     ProductoAlquiler,
     ServicioPersonal,
@@ -11,6 +11,13 @@ IMG = "https://images.unsplash.com/photo-"
 class Command(BaseCommand):
     help = "Carga datos de ejemplo"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--reset",
+            action="store_true",
+            help="Borra catálogo y portafolio antes de cargar.",
+        )
+
     def handle(self, *args, **options):
         self.stdout.write("Cargando datos...")
 
@@ -19,8 +26,12 @@ class Command(BaseCommand):
         from decouple import config
         admin_pass = config(
             "ADMINISTRACION_PASSWORD",
-            default="admin123"
+            default=None
         )
+        if not admin_pass:
+            raise CommandError(
+                "Falta configurar ADMINISTRACION_PASSWORD."
+            )
         if not User.objects.filter(
             username="administracion"
         ).exists():
@@ -33,10 +44,10 @@ class Command(BaseCommand):
                 "  Superusuario 'administracion' creado"
             )
 
-        # Limpiar datos existentes
-        ProductoAlquiler.objects.all().delete()
-        ServicioPersonal.objects.all().delete()
-        EventoPortafolio.objects.all().delete()
+        if options["reset"]:
+            ProductoAlquiler.objects.all().delete()
+            ServicioPersonal.objects.all().delete()
+            EventoPortafolio.objects.all().delete()
 
         # Productos de alquiler
         productos = [
@@ -198,10 +209,16 @@ class Command(BaseCommand):
             },
         ]
 
+        productos_nuevos = 0
         for p in productos:
-            ProductoAlquiler.objects.create(**p)
+            _, creado = ProductoAlquiler.objects.get_or_create(
+                nombre=p["nombre"],
+                defaults=p,
+            )
+            productos_nuevos += creado
         self.stdout.write(
-            f"  {len(productos)} productos creados"
+            f"  {productos_nuevos} productos nuevos "
+            f"de {len(productos)}"
         )
 
         # Servicios de personal
@@ -319,10 +336,16 @@ class Command(BaseCommand):
             },
         ]
 
+        servicios_nuevos = 0
         for s in servicios:
-            ServicioPersonal.objects.create(**s)
+            _, creado = ServicioPersonal.objects.get_or_create(
+                nombre=s["nombre"],
+                defaults=s,
+            )
+            servicios_nuevos += creado
         self.stdout.write(
-            f"  {len(servicios)} servicios creados"
+            f"  {servicios_nuevos} servicios nuevos "
+            f"de {len(servicios)}"
         )
 
         # Portafolio
@@ -423,10 +446,16 @@ class Command(BaseCommand):
             },
         ]
 
+        eventos_nuevos = 0
         for e in eventos:
-            EventoPortafolio.objects.create(**e)
+            _, creado = EventoPortafolio.objects.get_or_create(
+                titulo=e["titulo"],
+                defaults=e,
+            )
+            eventos_nuevos += creado
         self.stdout.write(
-            f"  {len(eventos)} eventos creados"
+            f"  {eventos_nuevos} eventos nuevos "
+            f"de {len(eventos)}"
         )
 
         self.stdout.write(

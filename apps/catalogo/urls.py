@@ -1,5 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from .views import (
+    LocacionViewSet,
+    PaqueteViewSet,
     ProductoAlquilerViewSet,
     ServicioPersonalViewSet,
 )
@@ -12,6 +14,14 @@ router.register(
 router.register(
     "servicios",
     ServicioPersonalViewSet,
+)
+router.register(
+    "paquetes",
+    PaqueteViewSet,
+)
+router.register(
+    "locaciones",
+    LocacionViewSet,
 )
 
 urlpatterns = router.urls

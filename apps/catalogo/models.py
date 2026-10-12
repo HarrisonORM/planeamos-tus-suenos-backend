@@ -64,3 +64,56 @@ class ServicioPersonal(models.Model):
 
     def __str__(self):
         return f"{self.nombre} ({self.categoria})"
+
+
+class Paquete(models.Model):
+    TIPOS_EVENTO = [
+        ("boda", "Boda"),
+        ("quinceañera", "Quinceañera"),
+        ("fiesta", "Fiesta"),
+        ("corporativo", "Corporativo"),
+        ("otro", "Otro"),
+    ]
+
+    nombre = models.CharField(max_length=200)
+    descripcion = models.TextField()
+    tipo_evento = models.CharField(
+        max_length=50,
+        choices=TIPOS_EVENTO,
+    )
+    precio_desde = models.PositiveIntegerField()
+    precio_hasta = models.PositiveIntegerField()
+    incluye = models.JSONField(default=list)
+    imagen = models.URLField(blank=True)
+    destacado = models.BooleanField(default=False)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Paquete"
+        verbose_name_plural = "Paquetes"
+        ordering = ["-destacado", "nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
+class Locacion(models.Model):
+    nombre = models.CharField(max_length=200)
+    descripcion = models.TextField()
+    municipio = models.CharField(max_length=100)
+    capacidad = models.PositiveIntegerField()
+    precio = models.CharField(
+        max_length=50,
+        default="Consultar",
+    )
+    imagen = models.URLField(blank=True)
+    tipos_evento = models.JSONField(default=list)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Locación"
+        verbose_name_plural = "Locaciones"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
