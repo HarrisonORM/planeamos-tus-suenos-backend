@@ -18,6 +18,7 @@ class ReservaAdmin(admin.ModelAdmin):
         "nombre_cliente",
         "correo",
     ]
+    readonly_fields = ["detalle"]
 
 
 @admin.register(PagoReserva)

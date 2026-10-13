@@ -30,6 +30,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
             "create",
             "fechas_ocupadas",
             "pago_anticipo",
+            "estado_pago",
             "wompi_webhook",
         ]
         if self.action in publicas:
@@ -209,6 +210,11 @@ class ReservaViewSet(viewsets.ModelViewSet):
             "customer-data:email": reserva.correo,
             "customer-data:full-name":
                 reserva.nombre_cliente,
+            "redirect-url": (
+                settings.FRONTEND_URL.rstrip("/")
+                + "/reserva/estado?referencia="
+                + pago.referencia
+            ),
         }
         url = (
             "https://checkout.wompi.co/p/?"
@@ -217,6 +223,41 @@ class ReservaViewSet(viewsets.ModelViewSet):
         return Response({
             "checkout_url": url,
             "referencia": pago.referencia,
+        })
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="estado-pago",
+    )
+    def estado_pago(self, request):
+        referencia = request.query_params.get(
+            "referencia",
+            "",
+        ).strip()
+        if not referencia:
+            return Response(
+                {"error": "La referencia es obligatoria."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        pago = (
+            PagoReserva.objects
+            .select_related("reserva")
+            .filter(referencia=referencia)
+            .first()
+        )
+        if pago is None:
+            return Response(
+                {"error": "No se encontró el pago."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response({
+            "referencia": pago.referencia,
+            "estado_pago": pago.estado,
+            "estado_reserva": pago.reserva.estado,
+            "valor_anticipo": pago.valor_anticipo,
         })
 
     @transaction.atomic

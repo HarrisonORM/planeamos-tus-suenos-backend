@@ -26,6 +26,7 @@ class Reserva(models.Model):
     )
     fecha_evento = models.DateField()
     descripcion = models.TextField(blank=True)
+    detalle = models.JSONField(default=list, blank=True)
     valor_total = models.IntegerField(default=0)
     valor_anticipo = models.IntegerField(default=0)
     anticipo_validado = models.BooleanField(default=False)

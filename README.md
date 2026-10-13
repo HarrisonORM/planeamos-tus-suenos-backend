@@ -33,6 +33,42 @@ API REST para el sitio web de organización de eventos en el Oriente Antioqueño
 - Crear una reserva es público; consultar y administrar
   reservas requiere una cuenta de administrador.
 
+### Solicitudes desde el cotizador
+
+El cliente crea una solicitud en
+`POST /api/reservas/reservas/` con sus datos, la fecha y
+los artículos seleccionados. Cada artículo incluye el ID
+del catálogo, el tipo (`producto` o `servicio`) y la
+cantidad:
+
+```json
+{
+  "nombre_cliente": "Nombre del cliente",
+  "telefono": "3001234567",
+  "correo": "cliente@example.com",
+  "direccion": "Lugar del evento",
+  "fecha_evento": "2027-06-15",
+  "descripcion": "Detalles adicionales",
+  "items": [
+    {
+      "id": 1,
+      "tipo": "producto",
+      "cantidad": 10
+    }
+  ]
+}
+```
+
+El servidor verifica la disponibilidad de cada artículo y
+calcula el total con los precios vigentes del catálogo;
+no confía en montos enviados por el cliente. La respuesta
+incluye el detalle y total calculados, y un `token_pago`.
+El anticipo comienza en cero y un administrador debe
+definirlo y validarlo antes de que el pago con Wompi quede
+habilitado. La fecha se valida nuevamente al crear la
+solicitud, además de consultarse con
+`GET /api/reservas/reservas/fechas-ocupadas/`.
+
 ## Pagos con Wompi Sandbox
 
 El flujo actual está limitado a Sandbox. No permite
@@ -59,6 +95,11 @@ Content-Type: application/json
 La respuesta incluye `checkout_url` y `referencia`.
 El cliente debe abrir `checkout_url` para pagar.
 No compartas el token de pago con terceros.
+Wompi redirige al cliente a
+`FRONTEND_URL/reserva/estado?referencia=...`, donde se
+consulta únicamente el estado del pago y de la reserva.
+Configura `FRONTEND_URL` con el origen público del
+frontend en producción.
 
 Wompi envía el resultado a:
 

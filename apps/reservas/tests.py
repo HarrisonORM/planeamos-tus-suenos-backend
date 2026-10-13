@@ -7,6 +7,10 @@ from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
+from apps.catalogo.models import (
+    ProductoAlquiler,
+    ServicioPersonal,
+)
 from .models import PagoReserva, Reserva
 from .wompi import (
     generar_firma_integridad,
@@ -79,27 +83,50 @@ class FechasOcupadasApiTests(TestCase):
 class CrearSolicitudReservaApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-
-    def test_creacion_no_cambia_campos_protegidos(self):
-        fecha_evento = (
-            timezone.localdate() + timedelta(days=20)
+        self.producto = ProductoAlquiler.objects.create(
+            nombre="Silla",
+            descripcion="Silla para eventos",
+            categoria="mobiliario",
+            precio=25000,
         )
+        self.servicio = ServicioPersonal.objects.create(
+            nombre="Mesero",
+            descripcion="Servicio de mesero",
+            categoria="meseros",
+            precio=100000,
+        )
+
+    def crear_solicitud(self, fecha_evento, **extra):
         datos = {
             "nombre_cliente": "Cliente de prueba",
             "telefono": "3001234567",
             "correo": "cliente@example.com",
-            "tipo_reserva": "evento",
             "fecha_evento": fecha_evento.isoformat(),
-            "valor_total": 1500000,
-            "valor_anticipo": 300000,
-            "estado": "confirmada",
-            "notas": "Nota interna no autorizada",
+            "items": [
+                {
+                    "id": self.producto.pk,
+                    "tipo": "producto",
+                    "cantidad": 4,
+                }
+            ],
+            **extra,
         }
-
-        respuesta = self.client.post(
+        return self.client.post(
             "/api/reservas/reservas/",
             datos,
             format="json",
+        )
+
+    def test_calcula_total_con_precio_oficial_y_ignora_montos_cliente(self):
+        fecha_evento = (
+            timezone.localdate() + timedelta(days=20)
+        )
+        respuesta = self.crear_solicitud(
+            fecha_evento,
+            valor_total=1500000,
+            valor_anticipo=300000,
+            estado="confirmada",
+            notas="Nota interna no autorizada",
         )
 
         self.assertEqual(
@@ -109,8 +136,112 @@ class CrearSolicitudReservaApiTests(TestCase):
         reserva = Reserva.objects.get()
         self.assertEqual(reserva.estado, "pendiente")
         self.assertEqual(reserva.notas, "")
-        self.assertEqual(reserva.valor_total, 1500000)
-        self.assertEqual(reserva.valor_anticipo, 300000)
+        self.assertEqual(reserva.tipo_reserva, "alquiler")
+        self.assertEqual(reserva.valor_total, 100000)
+        self.assertEqual(reserva.valor_anticipo, 0)
+        self.assertEqual(reserva.detalle[0]["precio_unitario"], 25000)
+        self.assertEqual(respuesta.data["valor_total"], 100000)
+
+    def test_calcula_total_de_productos_y_servicios(self):
+        fecha_evento = (
+            timezone.localdate() + timedelta(days=21)
+        )
+        respuesta = self.crear_solicitud(
+            fecha_evento,
+            items=[
+                {
+                    "id": self.producto.pk,
+                    "tipo": "producto",
+                    "cantidad": 2,
+                },
+                {
+                    "id": self.servicio.pk,
+                    "tipo": "servicio",
+                    "cantidad": 1,
+                },
+            ],
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_201_CREATED,
+        )
+        reserva = Reserva.objects.get()
+        self.assertEqual(reserva.tipo_reserva, "evento")
+        self.assertEqual(reserva.valor_total, 150000)
+        self.assertEqual(len(reserva.detalle), 2)
+
+    def test_rechaza_articulos_no_disponibles(self):
+        self.producto.disponible = False
+        self.producto.save(update_fields=["disponible"])
+
+        respuesta = self.crear_solicitud(
+            timezone.localdate() + timedelta(days=22)
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(Reserva.objects.count(), 0)
+
+    def test_rechaza_fecha_ocupada(self):
+        fecha_evento = (
+            timezone.localdate() + timedelta(days=23)
+        )
+        Reserva.objects.create(
+            nombre_cliente="Reserva existente",
+            telefono="3001234567",
+            correo="existente@example.com",
+            tipo_reserva="evento",
+            fecha_evento=fecha_evento,
+            estado="confirmada",
+        )
+
+        respuesta = self.crear_solicitud(fecha_evento)
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(Reserva.objects.count(), 1)
+
+    def test_rechaza_fecha_pasada(self):
+        respuesta = self.crear_solicitud(
+            timezone.localdate() - timedelta(days=1)
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(Reserva.objects.count(), 0)
+
+    def test_rechaza_articulos_duplicados(self):
+        fecha_evento = (
+            timezone.localdate() + timedelta(days=24)
+        )
+        respuesta = self.crear_solicitud(
+            fecha_evento,
+            items=[
+                {
+                    "id": self.producto.pk,
+                    "tipo": "producto",
+                    "cantidad": 1,
+                },
+                {
+                    "id": self.producto.pk,
+                    "tipo": "producto",
+                    "cantidad": 2,
+                },
+            ],
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertEqual(Reserva.objects.count(), 0)
 
     def test_listado_publico_requiere_administrador(self):
         respuesta = self.client.get(
@@ -185,6 +316,7 @@ class FirmasWompiTests(SimpleTestCase):
     WOMPI_PUBLIC_KEY="pub_test_prueba",
     WOMPI_INTEGRITY_SECRET="integridad-prueba",
     WOMPI_EVENTS_SECRET="eventos-prueba",
+    FRONTEND_URL="https://frontend.example.com/",
 )
 class PagoWompiApiTests(TestCase):
     def setUp(self):
@@ -335,6 +467,14 @@ class PagoWompiApiTests(TestCase):
             ["pub_test_prueba"],
         )
         self.assertEqual(
+            consulta["redirect-url"],
+            [
+                "https://frontend.example.com/"
+                "reserva/estado?referencia="
+                + primera.data["referencia"]
+            ],
+        )
+        self.assertEqual(
             consulta["signature:integrity"],
             [
                 generar_firma_integridad(
@@ -344,6 +484,57 @@ class PagoWompiApiTests(TestCase):
                     "integridad-prueba",
                 )
             ],
+        )
+
+    def test_estado_pago_es_publico_y_no_expone_datos_personales(
+        self,
+    ):
+        pago = PagoReserva.objects.create(
+            reserva=self.reserva,
+            referencia="RES-ESTADO-1",
+            valor_anticipo=300000,
+        )
+
+        respuesta = self.client.get(
+            "/api/reservas/reservas/estado-pago/",
+            {"referencia": pago.referencia},
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            respuesta.data,
+            {
+                "referencia": pago.referencia,
+                "estado_pago": "pendiente",
+                "estado_reserva": "pendiente",
+                "valor_anticipo": 300000,
+            },
+        )
+        self.assertNotIn("correo", respuesta.data)
+        self.assertNotIn("nombre_cliente", respuesta.data)
+
+    def test_estado_pago_exige_referencia(self):
+        respuesta = self.client.get(
+            "/api/reservas/reservas/estado-pago/"
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_estado_pago_no_revela_referencias_desconocidas(self):
+        respuesta = self.client.get(
+            "/api/reservas/reservas/estado-pago/",
+            {"referencia": "no-existe"},
+        )
+
+        self.assertEqual(
+            respuesta.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
 
     def test_webhook_rechaza_firma_invalida(self):

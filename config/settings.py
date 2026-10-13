@@ -109,6 +109,10 @@ WOMPI_EVENTS_SECRET = config(
     "WOMPI_EVENTS_SECRET",
     default="",
 )
+FRONTEND_URL = config(
+    "FRONTEND_URL",
+    default="http://localhost:3000",
+)
 
 # Configuración de la API
 REST_FRAMEWORK = {
