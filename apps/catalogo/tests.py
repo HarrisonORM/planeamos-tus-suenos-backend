@@ -1,3 +1,7 @@
+from io import StringIO
+from unittest.mock import patch
+
+from django.core.management import call_command
 from django.test import TestCase
 from rest_framework.test import APIClient
 from .models import Locacion, Paquete
@@ -79,3 +83,35 @@ class LocacionApiTests(TestCase):
             respuesta.data["results"][0]["nombre"],
             "Finca Oriente",
         )
+
+
+class CargarDatosTests(TestCase):
+    @patch("decouple.config", return_value="password-de-prueba")
+    def test_carga_paquetes_y_locaciones_de_forma_idempotente(
+        self,
+        _configuracion,
+    ):
+        salida = StringIO()
+        call_command("cargar_datos", stdout=salida)
+        call_command("cargar_datos", stdout=salida)
+
+        self.assertEqual(Paquete.objects.count(), 5)
+        self.assertEqual(Locacion.objects.count(), 9)
+        self.assertEqual(
+            Paquete.objects.filter(
+                nombre="Paquete Boda Esencial"
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            Locacion.objects.filter(
+                nombre="Zona E — El Establo"
+            ).count(),
+            1,
+        )
+
+        api_client = APIClient()
+        paquetes = api_client.get("/api/catalogo/paquetes/")
+        locaciones = api_client.get("/api/catalogo/locaciones/")
+        self.assertEqual(paquetes.data["count"], 5)
+        self.assertEqual(locaciones.data["count"], 9)

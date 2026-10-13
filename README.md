@@ -136,6 +136,12 @@ python manage.py runserver
 
 Abre http://127.0.0.1:8000
 
+El comando `python manage.py cargar_datos` carga de forma
+idempotente los datos de demostración del catálogo y del
+portafolio. Render lo ejecuta automáticamente al desplegar.
+Revisa y ajusta los datos de demostración desde `/admin/`
+antes de ofrecerlos como información comercial vigente.
+
 ## Repositorio del frontend
 
 [planeamos-tus-suenos-frontend](https://github.com/TU_USUARIO/planeamos-tus-suenos-frontend)

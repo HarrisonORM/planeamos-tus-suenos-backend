@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from apps.catalogo.models import (
+    Locacion,
+    Paquete,
     ProductoAlquiler,
     ServicioPersonal,
 )
@@ -15,7 +17,9 @@ class Command(BaseCommand):
         parser.add_argument(
             "--reset",
             action="store_true",
-            help="Borra catálogo y portafolio antes de cargar.",
+            help=(
+                "Borra catálogo y portafolio antes de cargar."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -47,6 +51,8 @@ class Command(BaseCommand):
         if options["reset"]:
             ProductoAlquiler.objects.all().delete()
             ServicioPersonal.objects.all().delete()
+            Paquete.objects.all().delete()
+            Locacion.objects.all().delete()
             EventoPortafolio.objects.all().delete()
 
         # Productos de alquiler
@@ -346,6 +352,298 @@ class Command(BaseCommand):
         self.stdout.write(
             f"  {servicios_nuevos} servicios nuevos "
             f"de {len(servicios)}"
+        )
+
+        # Paquetes prediseñados
+        paquetes = [
+            {
+                "nombre": "Paquete Boda Esencial",
+                "descripcion": (
+                    "Todo lo necesario para una boda elegante "
+                    "de hasta 100 invitados."
+                ),
+                "tipo_evento": "boda",
+                "precio_desde": 8500000,
+                "precio_hasta": 12000000,
+                "incluye": [
+                    "Mobiliario completo (sillas + mesas para 100)",
+                    "Menaje básico (vajilla, cubertería, cristalería)",
+                    "Mantelería y decoración estándar",
+                    "Equipo de sonido profesional",
+                    "8 meseros por 6 horas",
+                    "Coordinación del día del evento",
+                ],
+                "imagen": (
+                    IMG + "1519741497674-611481863552?w=800"
+                ),
+                "destacado": False,
+            },
+            {
+                "nombre": "Paquete Boda Premium",
+                "descripcion": (
+                    "Experiencia de boda completa con detalles "
+                    "de lujo hasta 200 invitados."
+                ),
+                "tipo_evento": "boda",
+                "precio_desde": 18000000,
+                "precio_hasta": 28000000,
+                "incluye": [
+                    "Mobiliario premium con sillas Crossback",
+                    "Menaje dorado y cristalería de alta gama",
+                    "Decoración floral integral",
+                    "Chef + estaciones gastronómicas",
+                    "DJ + equipo de sonido + luces",
+                    "15 meseros profesionales",
+                    "Fotografía y video profesional",
+                    "Torta de novios de 4 pisos",
+                    "Mesa de postres gourmet",
+                    "Planeación completa pre-evento",
+                ],
+                "imagen": (
+                    IMG + "1511795409834-ef04bbd61622?w=800"
+                ),
+                "destacado": True,
+            },
+            {
+                "nombre": "Paquete Quinceañera Clásica",
+                "descripcion": (
+                    "La celebración tradicional con el encanto "
+                    "de una princesa, hasta 150 invitados."
+                ),
+                "tipo_evento": "quinceañera",
+                "precio_desde": 6500000,
+                "precio_hasta": 10000000,
+                "incluye": [
+                    "Mobiliario y decoración temática",
+                    "Arco de ceremonia para coreografía",
+                    "DJ + iluminación ambiental",
+                    "10 meseros",
+                    "Chef y servicio de alimentación",
+                    "Torta de quince y mesa de postres",
+                    "Coordinación general",
+                ],
+                "imagen": (
+                    IMG + "1464366400600-7168b8af9bc3?w=800"
+                ),
+                "destacado": False,
+            },
+            {
+                "nombre": "Paquete Fiesta de Celebración",
+                "descripcion": (
+                    "Ideal para cumpleaños especiales, grados "
+                    "y celebraciones hasta 100 personas."
+                ),
+                "tipo_evento": "fiesta",
+                "precio_desde": 3500000,
+                "precio_hasta": 6500000,
+                "incluye": [
+                    "Mobiliario para 100 invitados",
+                    "Menaje completo",
+                    "DJ + luces de fiesta",
+                    "Estación de parrilla en vivo",
+                    "6 meseros",
+                    "Decoración personalizada al tema",
+                ],
+                "imagen": (
+                    IMG + "1530103862676-de8c9debad1d?w=800"
+                ),
+                "destacado": False,
+            },
+            {
+                "nombre": "Paquete Evento Corporativo",
+                "descripcion": (
+                    "Soluciones profesionales para empresas: "
+                    "lanzamientos, fin de año, reuniones."
+                ),
+                "tipo_evento": "corporativo",
+                "precio_desde": 5000000,
+                "precio_hasta": 12000000,
+                "incluye": [
+                    "Mobiliario profesional",
+                    "Equipo audiovisual y proyección",
+                    "Servicio de catering ejecutivo",
+                    "Personal de logística",
+                    "Ambientación corporativa",
+                    "Fotografía profesional",
+                ],
+                "imagen": (
+                    IMG + "1511578314322-379afb476865?w=800"
+                ),
+                "destacado": False,
+            },
+        ]
+
+        paquetes_nuevos = 0
+        for paquete in paquetes:
+            _, creado = Paquete.objects.get_or_create(
+                nombre=paquete["nombre"],
+                defaults=paquete,
+            )
+            paquetes_nuevos += creado
+        self.stdout.write(
+            f"  {paquetes_nuevos} paquetes nuevos "
+            f"de {len(paquetes)}"
+        )
+
+        # Locaciones recomendadas
+        locaciones = [
+            {
+                "nombre": "Zona E — El Establo",
+                "descripcion": (
+                    "Espíritu rústico y cálido estilo granero. "
+                    "Lago y bosque de eucaliptos para ceremonias "
+                    "al aire libre. 287.000 m² de entretenimiento."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 250,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1600585154340-be6161a56a0c?w=800"
+                ),
+                "tipos_evento": [
+                    "boda", "quinceañera", "corporativo",
+                ],
+            },
+            {
+                "nombre": "Zona E — Bali",
+                "descripcion": (
+                    "Espejo de agua, detalles en madera y "
+                    "vegetación exuberante que transporta "
+                    "al ambiente exótico de Bali."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 200,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1571896349842-33c89424de2d?w=800"
+                ),
+                "tipos_evento": ["boda", "corporativo"],
+            },
+            {
+                "nombre": "Zona E — Marrakech",
+                "descripcion": (
+                    "Evoca la esencia del desierto marroquí en "
+                    "un ambiente exclusivo. Detalles "
+                    "arquitectónicos contemporáneos con vista al lago."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 200,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1464366400600-7168b8af9bc3?w=800"
+                ),
+                "tipos_evento": ["boda", "corporativo", "fiesta"],
+            },
+            {
+                "nombre": "Villa Celeste",
+                "descripcion": (
+                    "Imponente salón rodeado de naturaleza. "
+                    "Se adapta a todos los estilos: boho, moderno, "
+                    "elegante, campestre. Mobiliario incluido "
+                    "hasta 200 personas."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 600,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1582719478250-c89cae4dc85b?w=800"
+                ),
+                "tipos_evento": [
+                    "boda", "quinceañera", "corporativo", "fiesta",
+                ],
+            },
+            {
+                "nombre": "Montana",
+                "descripcion": (
+                    "Espacio campestre con vistas panorámicas al "
+                    "valle del Oriente Antioqueño. Ambiente natural "
+                    "y exclusivo para eventos."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 200,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1600585154340-be6161a56a0c?w=800"
+                ),
+                "tipos_evento": ["boda", "fiesta"],
+            },
+            {
+                "nombre": "Zelavi",
+                "descripcion": (
+                    "Restaurante de alta cocina con fusión peruana, "
+                    "italiana y mexicana. Salón privado disponible "
+                    "para eventos íntimos y celebraciones."
+                ),
+                "municipio": "Rionegro",
+                "capacidad": 80,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1571896349842-33c89424de2d?w=800"
+                ),
+                "tipos_evento": ["fiesta", "corporativo"],
+            },
+            {
+                "nombre": "Granate Eventos",
+                "descripcion": (
+                    "Espacio campestre con estilo propio, hermosos "
+                    "jardines y parqueadero. Ubicado sobre la "
+                    "glorieta principal del aeropuerto José María "
+                    "Córdova."
+                ),
+                "municipio": "Rionegro",
+                "capacidad": 300,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1464366400600-7168b8af9bc3?w=800"
+                ),
+                "tipos_evento": [
+                    "boda", "quinceañera", "corporativo", "fiesta",
+                ],
+            },
+            {
+                "nombre": "Hotel Lagoon Llanogrande",
+                "descripcion": (
+                    "Hotel 5 estrellas con entorno romántico frente "
+                    "al lago. Restaurante gourmet, piscina "
+                    "climatizada y espacios para bodas y eventos "
+                    "corporativos."
+                ),
+                "municipio": "Rionegro",
+                "capacidad": 250,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1582719478250-c89cae4dc85b?w=800"
+                ),
+                "tipos_evento": ["boda", "corporativo"],
+            },
+            {
+                "nombre": "Imperial Eventos Campestre",
+                "descripcion": (
+                    "Jardines al aire libre y salón que combina "
+                    "estilo rústico con lo moderno. Incluye capilla, "
+                    "pista de baile, banquete, fotografía y "
+                    "decoración."
+                ),
+                "municipio": "Llanogrande",
+                "capacidad": 500,
+                "precio": "Consultar",
+                "imagen": (
+                    IMG + "1600585154340-be6161a56a0c?w=800"
+                ),
+                "tipos_evento": ["boda", "quinceañera"],
+            },
+        ]
+
+        locaciones_nuevas = 0
+        for locacion in locaciones:
+            _, creado = Locacion.objects.get_or_create(
+                nombre=locacion["nombre"],
+                defaults=locacion,
+            )
+            locaciones_nuevas += creado
+        self.stdout.write(
+            f"  {locaciones_nuevas} locaciones nuevas "
+            f"de {len(locaciones)}"
         )
 
         # Portafolio
