@@ -21,6 +21,14 @@ class Command(BaseCommand):
                 "Borra catálogo y portafolio antes de cargar."
             ),
         )
+        parser.add_argument(
+            "--actualizar-imagenes",
+            action="store_true",
+            help=(
+                "Actualiza la imagen de un producto "
+                "seleccionado."
+            ),
+        )
 
     def handle(self, *args, **options):
         self.stdout.write("Cargando datos...")
@@ -144,7 +152,7 @@ class Command(BaseCommand):
                 "precio": 4200,
                 "unidad": "por día",
                 "imagen":
-                    IMG + "1514362545857-3bc16c4c7d1b?w=600",
+                    IMG + "1522413452208-996ff3f3e740?w=600",
                 "tipos_evento":
                     ["boda", "quinceañera", "corporativo"],
             },
@@ -216,16 +224,32 @@ class Command(BaseCommand):
         ]
 
         productos_nuevos = 0
+        imagenes_actualizadas = 0
         for p in productos:
-            _, creado = ProductoAlquiler.objects.get_or_create(
-                nombre=p["nombre"],
-                defaults=p,
+            producto, creado = (
+                ProductoAlquiler.objects.get_or_create(
+                    nombre=p["nombre"],
+                    defaults=p,
+                )
             )
             productos_nuevos += creado
+            if (
+                options["actualizar_imagenes"]
+                and not creado
+                and p["nombre"] == "Vajilla Porcelana Blanca"
+            ):
+                producto.imagen = p["imagen"]
+                producto.save(update_fields=["imagen"])
+                imagenes_actualizadas += 1
         self.stdout.write(
             f"  {productos_nuevos} productos nuevos "
             f"de {len(productos)}"
         )
+        if options["actualizar_imagenes"]:
+            self.stdout.write(
+                "  Imágenes actualizadas: "
+                f"{imagenes_actualizadas}"
+            )
 
         # Servicios de personal
         servicios = [
