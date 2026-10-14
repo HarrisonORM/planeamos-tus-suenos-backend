@@ -1,6 +1,5 @@
 import logging
-import threading
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -42,23 +41,31 @@ def construir_mensaje(reserva):
 
 
 def _enviar(mensaje):
-    url = TELEGRAM_URL.format(token=settings.TELEGRAM_BOT_TOKEN)
+    token = settings.TELEGRAM_BOT_TOKEN.strip()
+    url = TELEGRAM_URL.format(token=token)
     datos = urlencode({
-        "chat_id": settings.TELEGRAM_CHAT_ID,
+        "chat_id": settings.TELEGRAM_CHAT_ID.strip(),
         "text": mensaje,
     }).encode()
     try:
-        with urlopen(url, data=datos, timeout=15) as r:
-            if r.status != 200:
-                logger.warning("Telegram respondió %s", r.status)
+        with urlopen(url, data=datos, timeout=8) as r:
+            logger.info("Telegram respondió %s", r.status)
+    except HTTPError as error:
+        logger.error(
+            "Telegram rechazó el aviso (%s): %s",
+            error.code,
+            error.read().decode(errors="replace"),
+        )
     except (URLError, OSError):
         logger.exception("No se pudo enviar el aviso de la reserva")
 
 
 def notificar_nueva_reserva(reserva):
-    """Envía los datos de la reserva por Telegram sin bloquear."""
+    """Envía los datos de la reserva por Telegram; nunca lanza errores."""
     if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
-        logger.warning("Telegram no configurado; no se notifica la reserva")
+        logger.error("Telegram no configurado; no se notifica la reserva")
         return
-    mensaje = construir_mensaje(reserva)
-    threading.Thread(target=_enviar, args=(mensaje,), daemon=True).start()
+    try:
+        _enviar(construir_mensaje(reserva))
+    except Exception:
+        logger.exception("Falló el aviso de la reserva #%s", reserva.pk)
