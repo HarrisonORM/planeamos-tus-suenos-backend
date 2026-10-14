@@ -109,6 +109,8 @@ WOMPI_EVENTS_SECRET = config(
     "WOMPI_EVENTS_SECRET",
     default="",
 )
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_CHAT_ID = config("TELEGRAM_CHAT_ID", default="")
 FRONTEND_URL = config(
     "FRONTEND_URL",
     default="http://localhost:3000",

@@ -15,6 +15,7 @@ from .serializers import (
     ReservaSerializer,
     SolicitudReservaSerializer,
 )
+from .notificaciones import notificar_nueva_reserva
 from .wompi import (
     generar_firma_integridad,
     verificar_firma_evento,
@@ -41,6 +42,12 @@ class ReservaViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return SolicitudReservaSerializer
         return ReservaSerializer
+
+    def perform_create(self, serializer):
+        reserva = serializer.save()
+        transaction.on_commit(
+            lambda: notificar_nueva_reserva(reserva)
+        )
 
     def get_queryset(self):
         qs = super().get_queryset()

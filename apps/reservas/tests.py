@@ -142,6 +142,28 @@ class CrearSolicitudReservaApiTests(TestCase):
         self.assertEqual(reserva.detalle[0]["precio_unitario"], 25000)
         self.assertEqual(respuesta.data["valor_total"], 100000)
 
+    def test_notifica_por_whatsapp_al_crear_la_reserva(self):
+        from unittest.mock import patch
+        fecha_evento = timezone.localdate() + timedelta(days=22)
+        with patch(
+            "apps.reservas.views.notificar_nueva_reserva"
+        ) as notificar, self.captureOnCommitCallbacks(execute=True):
+            respuesta = self.crear_solicitud(fecha_evento)
+
+        self.assertEqual(respuesta.status_code, status.HTTP_201_CREATED)
+        notificar.assert_called_once_with(Reserva.objects.get())
+
+    def test_mensaje_whatsapp_incluye_datos_de_la_reserva(self):
+        from .notificaciones import construir_mensaje
+        fecha_evento = timezone.localdate() + timedelta(days=23)
+        self.crear_solicitud(fecha_evento)
+        mensaje = construir_mensaje(Reserva.objects.get())
+
+        self.assertIn("Cliente de prueba", mensaje)
+        self.assertIn("3001234567", mensaje)
+        self.assertIn("Silla x4", mensaje)
+        self.assertIn("$100.000", mensaje)
+
     def test_calcula_total_de_productos_y_servicios(self):
         fecha_evento = (
             timezone.localdate() + timedelta(days=21)
