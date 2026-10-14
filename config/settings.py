@@ -125,6 +125,18 @@ REST_FRAMEWORK = {
 # Producción
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "apps": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
+
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
     "https://*.vercel.app",

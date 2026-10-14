@@ -66,6 +66,7 @@ def notificar_nueva_reserva(reserva):
         logger.error("Telegram no configurado; no se notifica la reserva")
         return
     try:
+        logger.info("Enviando aviso de la reserva #%s", reserva.pk)
         _enviar(construir_mensaje(reserva))
     except Exception:
         logger.exception("Falló el aviso de la reserva #%s", reserva.pk)
